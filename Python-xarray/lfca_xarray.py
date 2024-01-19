@@ -12,7 +12,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 from eofs.standard import Eof
-from scipy.signal import convolve, butter, filtfilt
+from scipy.signal import convolve, butter, sosfiltfilt
 
 ### Helper functions ###
 def low_pass_weights(window, cutoff):
@@ -78,11 +78,9 @@ def filter_ts(ts, cutoff, filter_type='lanczos', padding_type='periodic', detren
         # Lanczos filter
         return convolve(ts_mirr,lanczos_weights,'same')[n_pad:-n_pad]
     elif filter_type=='butter':
-        # Butterworth filter
-        # TODO: here, the cutoff frequency needs to be doubled
-        # to obtain the same result as for Lanczos - why?
-        b,a = butter(3,1./(cutoff/2),btype='low')
-        return filtfilt(b,a,ts_mirr)[n_pad:-n_pad]
+        # 4th-order Butterworth filter
+        sos = butter(4, 1./cutoff, 'lowpass', fs=1, output='sos')
+        return sosfiltfilt(sos, ts_mirr-np.mean(ts_mirr))[n_pad:-n_pad]+np.mean(ts_mirr)
     else:
         raise ValueError('in filter_ts: filter_type must be one of "lanczos" or "butter".')
 
